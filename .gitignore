@@ -1,0 +1,4 @@
+# Excluded from repository per request
+README.md
+docs/
+sql/
