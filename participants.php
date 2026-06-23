@@ -208,7 +208,8 @@ try {
     $participants_forfaits = $stmtForfaits->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    $message = $e->getMessage();
+    error_log("DB error: " . $e->getMessage());
+    $message = "Une erreur est survenue. Veuillez reessayer plus tard.";
     $message_type = 'error';
     $tournoi = $tournoi ?? null;
     $participants_actifs = [];
@@ -357,29 +358,6 @@ $max_p = $tournoi['max_participants'] ?: '&#8734;';
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                     Check-in des joueurs
                 </a>
-
-                <!-- Lien de partage -->
-                <?php
-                $lien_partage = null;
-                try {
-                    $lien_partage = $tournoi['lien_partage'] ?? null;
-                    if (!$lien_partage) {
-                        require_once __DIR__ . '/_helpers.php';
-                        $lien_partage = genererLienPartage($pdo, (int) $id_tournoi);
-                    }
-                } catch (Exception $e) {
-                    $lien_partage = null; // colonne pas encore ajoutee
-                }
-                ?>
-                <?php if ($lien_partage): ?>
-                <div class="glass-card border border-slate-800 rounded-xl p-4 mt-2">
-                    <p class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Lien public</p>
-                    <div class="flex gap-1">
-                        <input type="text" value="tournoi_public.php?code=<?= $lien_partage ?>" class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-[10px] text-slate-300 outline-none" readonly id="share-link">
-                        <button onclick="navigator.clipboard.writeText(document.getElementById('share-link').value); this.textContent='OK'" class="text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/40 px-2 py-1 rounded">Copier</button>
-                    </div>
-                </div>
-                <?php endif; ?>
 
                 <!-- Inscriptions -->
                 <a href="gerer_inscriptions.php?id_tournoi=<?= $id_tournoi ?>" class="w-full glass-card border border-slate-800 hover:border-indigo-500/50 rounded-xl p-3 text-xs font-bold text-slate-300 hover:text-indigo-400 transition flex items-center justify-center gap-2 mt-2">

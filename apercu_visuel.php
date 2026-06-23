@@ -145,7 +145,7 @@ $equipes_brutes = $_POST['equipes'] ?? '';
 
     <script>
         $(document).ready(function() {
-            let donneesBrutes = <?= json_encode($equipes_brutes) ?>;
+            let donneesBrutes = <?= json_encode($equipes_brutes, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
             let estDoubleElimination = <?= json_encode($format === 'double') ?>;
             let veutTroisiemePlace = <?= json_encode($troisieme_place) ?>;
 

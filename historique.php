@@ -21,25 +21,25 @@ try {
     }
 
     // Matchs termines, ordre chronologique inverse
-    $stmtH = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id AND statut_match = 'termine' AND gagnant_id IS NOT NULL ORDER BY ronde DESC, position ASC");
+    $stmtH = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id AND statut_match = 'termine' AND gagnant_id IS NOT NULL ORDER BY manche DESC, position ASC");
     $stmtH->execute([":id" => $id_tournoi]);
     $matchs = $stmtH->fetchAll(PDO::FETCH_ASSOC);
 
-    $nb_rondes = 0;
+    $nb_manches = 0;
     if (!empty($matchs)) {
-        $stmtR = $pdo->prepare("SELECT MAX(ronde) FROM match_tournoi WHERE id_tournoi = :id");
+        $stmtR = $pdo->prepare("SELECT MAX(manche) FROM match_tournoi WHERE id_tournoi = :id");
         $stmtR->execute([":id" => $id_tournoi]);
-        $nb_rondes = (int) $stmtR->fetchColumn();
+        $nb_manches = (int) $stmtR->fetchColumn();
     }
 
-    function labelRondeHist($r, $total) {
+    function labelMancheHist($r, $total) {
         if ($r === $total) return "Finale";
         if ($r === $total - 1) return "Demi-finales";
         if ($r === $total - 2) return "Quarts de finale";
-        return "Ronde " . $r;
+        return "Manche " . $r;
     }
 
-} catch (PDOException $e) { die("Erreur: " . $e->getMessage()); }
+} catch (PDOException $e) { error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard."); }
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -75,7 +75,7 @@ try {
                 ?>
                 <div class="glass-card border border-slate-800 rounded-xl p-4 flex items-center justify-between hover:border-indigo-500/40 transition">
                     <div class="flex items-center gap-4">
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 w-24"><?= labelRondeHist($m['ronde'], $nb_rondes) ?></span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-slate-500 w-24"><?= labelMancheHist($m['manche'], $nb_manches) ?></span>
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-bold <?= $g1 ? 'text-emerald-400' : 'text-slate-400' ?>"><?= htmlspecialchars($nom1) ?></span>
                             <span class="text-xs text-slate-500 font-bold px-2 py-0.5 bg-slate-800 rounded"><?= $m['score1'] ?> - <?= $m['score2'] ?></span>

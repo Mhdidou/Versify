@@ -1,15 +1,15 @@
 ﻿<?php
 session_start();
 
-// Verifier le cookie "se souvenir de moi" au chargement
+// Verifier le cookie "se souvenir de moi" au chargement (jeton securise)
 if (!isset($_SESSION['id_utilisateur']) && isset($_COOKIE['versify_remember'])) {
     try {
         require_once __DIR__ . '/config.php';
-        $stmtCookie = $pdo->prepare("SELECT id_utilisateur FROM utilisateur WHERE id_utilisateur = :u");
-        $stmtCookie->execute([":u" => $_COOKIE['versify_remember']]);
-        $rowCookie = $stmtCookie->fetch(PDO::FETCH_ASSOC);
-        if ($rowCookie) {
-            $_SESSION['id_utilisateur'] = $rowCookie['id_utilisateur'];
+        require_once __DIR__ . '/_auth.php';
+        $id_souvenir = auth_remember_verifier($pdo);
+        if ($id_souvenir !== null) {
+            session_regenerate_id(true);
+            $_SESSION['id_utilisateur'] = $id_souvenir;
             header("Location: dashboard.php");
             die();
         }
@@ -25,11 +25,14 @@ if (isset($_POST['login']) && isset($_POST['pass'])) {
         $row = $pdostat->fetch(PDO::FETCH_ASSOC);
 
         if ($row && password_verify($_POST['pass'], $row['mdp'])) {
+            // Empeche la fixation de session : on regenere l'identifiant
+            session_regenerate_id(true);
             $_SESSION['id_utilisateur'] = $row['id_utilisateur'];
 
-            // Cookie "se souvenir de moi" — 7 jours
+            // Cookie "se souvenir de moi" — jeton securise, 7 jours
             if (isset($_POST['remember_me'])) {
-                setcookie('versify_remember', $row['id_utilisateur'], time() + (7 * 24 * 60 * 60), '/', '', false, true);
+                require_once __DIR__ . '/_auth.php';
+                auth_remember_creer($pdo, $row['id_utilisateur']);
             }
 
             header("Location: dashboard.php");
@@ -38,7 +41,9 @@ if (isset($_POST['login']) && isset($_POST['pass'])) {
             $erreur = "Identifiants incorrects";
         }
     } catch (PDOException $e) {
-        $erreur = $e->getMessage();
+        // Ne pas divulguer les details techniques a l'utilisateur
+        error_log('Login error: ' . $e->getMessage());
+        $erreur = "Une erreur est survenue. Veuillez reessayer.";
     }
 }
 ?>

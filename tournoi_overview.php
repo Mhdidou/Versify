@@ -51,40 +51,40 @@ try {
         $map_participants[$p['id']] = $p['nom_affichage'] ?: $p['nom_participant'];
     }
 
-    $stmtM = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id ORDER BY ronde ASC, position ASC");
+    $stmtM = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id ORDER BY manche ASC, position ASC");
     $stmtM->execute([":id" => $id_tournoi]);
     $matchs = $stmtM->fetchAll(PDO::FETCH_ASSOC);
 
-    // Parametres Double Elimination (calcules a partir du nb de matchs de la ronde 1)
+    // Parametres Double Elimination (calcules a partir du nb de matchs de la manche 1)
     $format = $tournoi['format'] ?? 'Single Elimination';
     $is_de = ($format === 'Double Elimination');
-    $nb_rondes_wb = 0; $nb_rondes_lb = 0;
+    $nb_manches_wb = 0; $nb_manches_lb = 0;
     if ($is_de) {
         $r1c = 0;
-        foreach ($matchs as $m) { if ((int) $m['ronde'] === 1) $r1c++; }
+        foreach ($matchs as $m) { if ((int) $m['manche'] === 1) $r1c++; }
         if ($r1c > 0) {
-            $nb_rondes_wb = (int) log($r1c * 2, 2);
-            $nb_rondes_lb = 2 * max(0, $nb_rondes_wb - 1);
+            $nb_manches_wb = (int) log($r1c * 2, 2);
+            $nb_manches_lb = 2 * max(0, $nb_manches_wb - 1);
         }
     }
-    $nb_rondes_total = 0;
-    foreach ($matchs as $m) { if ((int) $m['ronde'] > $nb_rondes_total) $nb_rondes_total = (int) $m['ronde']; }
+    $nb_manches_total = 0;
+    foreach ($matchs as $m) { if ((int) $m['manche'] > $nb_manches_total) $nb_manches_total = (int) $m['manche']; }
 
-} catch (PDOException $e) { die("Erreur: " . $e->getMessage()); }
+} catch (PDOException $e) { error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard."); }
 
-// Label de section (bracket) + label de ronde
-function infoBracket($ronde, $is_de, $nwb, $nlb, $total) {
+// Label de section (bracket) + label de manche
+function infoBracket($manche, $is_de, $nwb, $nlb, $total) {
     if ($is_de) {
         $gf = $nwb + $nlb + 1;
-        if ($ronde >= $gf)      return ['section' => 'GF', 'label' => 'Grande Finale'];
-        if ($ronde > $nwb)      return ['section' => 'LB', 'label' => 'Perdants R' . ($ronde - $nwb)];
-        if ($ronde === $nwb)    return ['section' => 'WB', 'label' => 'Finale Gagnants'];
-        return ['section' => 'WB', 'label' => 'Gagnants R' . $ronde];
+        if ($manche >= $gf)      return ['section' => 'GF', 'label' => 'Grande Finale'];
+        if ($manche > $nwb)      return ['section' => 'LB', 'label' => 'Perdants R' . ($manche - $nwb)];
+        if ($manche === $nwb)    return ['section' => 'WB', 'label' => 'Finale Gagnants'];
+        return ['section' => 'WB', 'label' => 'Gagnants R' . $manche];
     }
-    if ($ronde === $total)     return ['section' => 'SE', 'label' => 'Finale'];
-    if ($ronde === $total - 1) return ['section' => 'SE', 'label' => 'Demi-finales'];
-    if ($ronde === $total - 2) return ['section' => 'SE', 'label' => 'Quarts de finale'];
-    return ['section' => 'SE', 'label' => 'Ronde ' . $ronde];
+    if ($manche === $total)     return ['section' => 'SE', 'label' => 'Finale'];
+    if ($manche === $total - 1) return ['section' => 'SE', 'label' => 'Demi-finales'];
+    if ($manche === $total - 2) return ['section' => 'SE', 'label' => 'Quarts de finale'];
+    return ['section' => 'SE', 'label' => 'Manche ' . $manche];
 }
 
 // Decalage GMT du fuseau pour l'affichage
@@ -185,7 +185,7 @@ $date_fmt = (new DateTime($tournoi['date_depart']))->format('D d M Y');
             <?php else: ?>
             <div class="divide-y divide-slate-800/60">
                 <?php foreach ($matchs as $m):
-                    $info = infoBracket((int) $m['ronde'], $is_de, $nb_rondes_wb, $nb_rondes_lb, $nb_rondes_total);
+                    $info = infoBracket((int) $m['manche'], $is_de, $nb_manches_wb, $nb_manches_lb, $nb_manches_total);
                     $nom1 = isset($m['id_participant1']) ? ($map_participants[$m['id_participant1']] ?? null) : null;
                     $nom2 = isset($m['id_participant2']) ? ($map_participants[$m['id_participant2']] ?? null) : null;
                     $sect_color = match ($info['section']) {

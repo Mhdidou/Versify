@@ -90,11 +90,11 @@ try {
         </div>
 
         <h1 class="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight leading-tight mb-6">
-            The Standard for<br>
-            <span class="bg-gradient-to-r from-indigo-400 via-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">Competitive Integrity.</span>
+            L'arène de vos ambitions<br>
+            <span class="bg-gradient-to-r from-indigo-400 via-indigo-500 to-fuchsia-500 bg-clip-text text-transparent">créez, gérez et automatisez vos compétitions en quelques clics</span>
         </h1>
         <p class="max-w-2xl mx-auto text-base md:text-lg text-slate-400 leading-relaxed mb-10">
-            La plateforme où la skill rencontre la stratégie. Créez des brackets, gérez vos participants et suivez vos phases de jeu en temps réel. Que vous soyez joueur, organisateur ou spectateur, la compétition commence ici.
+             Créez des brackets, gérez vos participants et suivez vos phases de jeu en temps réel. Que vous soyez joueur, organisateur ou spectateur.
         </p>
         <div class="flex flex-wrap gap-3 justify-center mb-16">
             <?php if (!$est_connecte): ?>

@@ -63,7 +63,7 @@ try {
     $inscriptions = $stmtList->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (PDOException $e) {
-    die("Erreur: " . $e->getMessage());
+    error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard.");
 }
 ?>
 <!DOCTYPE html>

@@ -66,7 +66,7 @@ try {
     $stmtList->execute([":id" => $id_tournoi]);
     $reclamations = $stmtList->fetchAll(PDO::FETCH_ASSOC);
 
-} catch (PDOException $e) { die("Erreur: " . $e->getMessage()); }
+} catch (PDOException $e) { error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard."); }
 ?>
 <!DOCTYPE html>
 <html lang="fr">

@@ -27,7 +27,7 @@ try {
 
     $jeu_info = getJeuInfo($pdo, $tournoi['jeu']);
 
-} catch (PDOException $e) { die("Erreur: " . $e->getMessage()); }
+} catch (PDOException $e) { error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard."); }
 
 $accent = $jeu_info['couleur_accent'] ?? '#6366f1';
 ?>

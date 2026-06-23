@@ -25,7 +25,7 @@ try {
         $message = "Règlement enregistré.";
     }
 
-} catch (PDOException $e) { die("Erreur: " . $e->getMessage()); }
+} catch (PDOException $e) { error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard."); }
 
 $format = $tournoi['format'] ?? 'Single Elimination';
 $best_of = (int) ($tournoi['best_of'] ?? 1);

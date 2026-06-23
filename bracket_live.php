@@ -72,8 +72,8 @@ try {
             // ===== DOUBLE ELIMINATION =====
             // WB rounds: 1..NWB | LB rounds: NWB+1..NWB+NLB | GF: NWB+NLB+1
             $puissance = (int) pow(2, ceil(log(max(2, $nb), 2)));
-            $nb_rondes_wb_gen = (int) log($puissance, 2);
-            $nb_rondes_lb_gen = 2 * max(0, $nb_rondes_wb_gen - 1);
+            $nb_manches_wb_gen = (int) log($puissance, 2);
+            $nb_manches_lb_gen = 2 * max(0, $nb_manches_wb_gen - 1);
 
             $ordre = genererSeeding($puissance);
             $slots = array_fill(0, $puissance, null);
@@ -87,16 +87,16 @@ try {
                 $p1 = $slots[$i];
                 $p2 = $slots[$i + 1];
                 $position++;
-                $stmtIns = $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, ronde, position, id_participant1, id_participant2, statut_match, type_bracket) VALUES (:id, 1, :pos, :p1, :p2, :st, 'WB')");
+                $stmtIns = $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, manche, position, id_participant1, id_participant2, statut_match, type_bracket) VALUES (:id, 1, :pos, :p1, :p2, :st, 'WB')");
                 if ($p1 === null && $p2 === null) {
                     $stmtIns->execute([":id" => $id_tournoi, ":pos" => $position, ":p1" => null, ":p2" => null, ":st" => 'termine']);
                 } elseif ($p1 === null) {
                     $stmtIns->execute([":id" => $id_tournoi, ":pos" => $position, ":p1" => null, ":p2" => $p2, ":st" => 'termine']);
-                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score2 = :s WHERE id_tournoi = :id AND ronde = 1 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score2 = :s WHERE id_tournoi = :id AND manche = 1 AND position = :pos")
                         ->execute([":g" => $p2, ":s" => $score_pour_gagner, ":id" => $id_tournoi, ":pos" => $position]);
                 } elseif ($p2 === null) {
                     $stmtIns->execute([":id" => $id_tournoi, ":pos" => $position, ":p1" => $p1, ":p2" => null, ":st" => 'termine']);
-                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score1 = :s WHERE id_tournoi = :id AND ronde = 1 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score1 = :s WHERE id_tournoi = :id AND manche = 1 AND position = :pos")
                         ->execute([":g" => $p1, ":s" => $score_pour_gagner, ":id" => $id_tournoi, ":pos" => $position]);
                 } else {
                     $stmtIns->execute([":id" => $id_tournoi, ":pos" => $position, ":p1" => $p1, ":p2" => $p2, ":st" => 'en_attente']);
@@ -104,31 +104,31 @@ try {
             }
 
             // WB Rounds 2..NWB (empty shells)
-            for ($r = 2; $r <= $nb_rondes_wb_gen; $r++) {
+            for ($r = 2; $r <= $nb_manches_wb_gen; $r++) {
                 $nb_m = (int) ($puissance / pow(2, $r));
                 for ($pos = 1; $pos <= $nb_m; $pos++) {
-                    $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, ronde, position, statut_match, type_bracket) VALUES (:id, :r, :pos, 'en_attente', 'WB')")
+                    $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, manche, position, statut_match, type_bracket) VALUES (:id, :r, :pos, 'en_attente', 'WB')")
                         ->execute([":id" => $id_tournoi, ":r" => $r, ":pos" => $pos]);
                 }
             }
 
             // LB Rounds (offset: NWB+1..NWB+NLB)
             // Match count: LBRlr = puissance / 2^(ceil(lr/2)+1), min 1
-            for ($lr = 1; $lr <= $nb_rondes_lb_gen; $lr++) {
-                $ar = $nb_rondes_wb_gen + $lr;
+            for ($lr = 1; $lr <= $nb_manches_lb_gen; $lr++) {
+                $ar = $nb_manches_wb_gen + $lr;
                 $nb_m = max(1, (int) ($puissance / pow(2, (int) ceil($lr / 2) + 1)));
                 for ($pos = 1; $pos <= $nb_m; $pos++) {
-                    $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, ronde, position, statut_match, type_bracket) VALUES (:id, :r, :pos, 'en_attente', 'LB')")
+                    $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, manche, position, statut_match, type_bracket) VALUES (:id, :r, :pos, 'en_attente', 'LB')")
                         ->execute([":id" => $id_tournoi, ":r" => $ar, ":pos" => $pos]);
                 }
             }
 
             // Grand Final
-            $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, ronde, position, statut_match, type_bracket) VALUES (:id, :r, 1, 'en_attente', 'GF')")
-                ->execute([":id" => $id_tournoi, ":r" => $nb_rondes_wb_gen + $nb_rondes_lb_gen + 1]);
+            $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, manche, position, statut_match, type_bracket) VALUES (:id, :r, 1, 'en_attente', 'GF')")
+                ->execute([":id" => $id_tournoi, ":r" => $nb_manches_wb_gen + $nb_manches_lb_gen + 1]);
 
             // Propagate WBR1 byes into WBR2
-            $stmtR1 = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id AND ronde = 1 ORDER BY position ASC");
+            $stmtR1 = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id AND manche = 1 ORDER BY position ASC");
             $stmtR1->execute([":id" => $id_tournoi]);
             $matchs_r1 = $stmtR1->fetchAll(PDO::FETCH_ASSOC);
             for ($i = 0; $i < count($matchs_r1); $i += 2) {
@@ -136,11 +136,11 @@ try {
                 $m2 = $matchs_r1[$i + 1] ?? null;
                 $pos_r2 = (int) floor($i / 2) + 1;
                 if ($m1['gagnant_id']) {
-                    $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND ronde = 2 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND manche = 2 AND position = :pos")
                         ->execute([":p" => $m1['gagnant_id'], ":id" => $id_tournoi, ":pos" => $pos_r2]);
                 }
                 if ($m2 && $m2['gagnant_id']) {
-                    $pdo->prepare("UPDATE match_tournoi SET id_participant2 = :p WHERE id_tournoi = :id AND ronde = 2 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET id_participant2 = :p WHERE id_tournoi = :id AND manche = 2 AND position = :pos")
                         ->execute([":p" => $m2['gagnant_id'], ":id" => $id_tournoi, ":pos" => $pos_r2]);
                 }
             }
@@ -148,7 +148,7 @@ try {
         } else {
             // ===== SINGLE ELIMINATION =====
             $puissance = (int) pow(2, ceil(log($nb, 2)));
-            $nb_rondes = (int) log($puissance, 2);
+            $nb_manches = (int) log($puissance, 2);
 
             $ordre = genererSeeding($puissance);
             $slots = array_fill(0, $puissance, null);
@@ -159,41 +159,41 @@ try {
                 }
             }
 
-            // Creer les matchs de la ronde 1
+            // Creer les matchs de la manche 1
             $position = 0;
             for ($i = 0; $i < $puissance; $i += 2) {
                 $p1 = $slots[$i];
                 $p2 = $slots[$i + 1];
                 $position++;
 
-                $stmtInsert = $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, ronde, position, id_participant1, id_participant2, statut_match, type_bracket) VALUES (:id_tournoi, 1, :pos, :p1, :p2, :statut, 'SE')");
+                $stmtInsert = $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, manche, position, id_participant1, id_participant2, statut_match, type_bracket) VALUES (:id_tournoi, 1, :pos, :p1, :p2, :statut, 'SE')");
 
                 if ($p1 === null && $p2 === null) {
                     $stmtInsert->execute([":id_tournoi" => $id_tournoi, ":pos" => $position, ":p1" => null, ":p2" => null, ":statut" => 'termine']);
                 } elseif ($p1 === null) {
                     $stmtInsert->execute([":id_tournoi" => $id_tournoi, ":pos" => $position, ":p1" => null, ":p2" => $p2, ":statut" => 'termine']);
-                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score2 = :s WHERE id_tournoi = :id AND ronde = 1 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score2 = :s WHERE id_tournoi = :id AND manche = 1 AND position = :pos")
                         ->execute([":g" => $p2, ":s" => $score_pour_gagner, ":id" => $id_tournoi, ":pos" => $position]);
                 } elseif ($p2 === null) {
                     $stmtInsert->execute([":id_tournoi" => $id_tournoi, ":pos" => $position, ":p1" => $p1, ":p2" => null, ":statut" => 'termine']);
-                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score1 = :s WHERE id_tournoi = :id AND ronde = 1 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET gagnant_id = :g, score1 = :s WHERE id_tournoi = :id AND manche = 1 AND position = :pos")
                         ->execute([":g" => $p1, ":s" => $score_pour_gagner, ":id" => $id_tournoi, ":pos" => $position]);
                 } else {
                     $stmtInsert->execute([":id_tournoi" => $id_tournoi, ":pos" => $position, ":p1" => $p1, ":p2" => $p2, ":statut" => 'en_attente']);
                 }
             }
 
-            // Creer les matchs vides pour les rondes suivantes
-            for ($r = 2; $r <= $nb_rondes; $r++) {
-                $nb_matchs_ronde = (int) ($puissance / pow(2, $r));
-                for ($pos = 1; $pos <= $nb_matchs_ronde; $pos++) {
-                    $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, ronde, position, statut_match, type_bracket) VALUES (:id, :r, :pos, 'en_attente', 'SE')")
+            // Creer les matchs vides pour les manches suivantes
+            for ($r = 2; $r <= $nb_manches; $r++) {
+                $nb_matchs_manche = (int) ($puissance / pow(2, $r));
+                for ($pos = 1; $pos <= $nb_matchs_manche; $pos++) {
+                    $pdo->prepare("INSERT INTO match_tournoi (id_tournoi, manche, position, statut_match, type_bracket) VALUES (:id, :r, :pos, 'en_attente', 'SE')")
                         ->execute([":id" => $id_tournoi, ":r" => $r, ":pos" => $pos]);
                 }
             }
 
-            // Propager les byes vers la ronde 2
-            $stmtR1 = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id AND ronde = 1 ORDER BY position ASC");
+            // Propager les byes vers la manche 2
+            $stmtR1 = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id AND manche = 1 ORDER BY position ASC");
             $stmtR1->execute([":id" => $id_tournoi]);
             $matchs_r1 = $stmtR1->fetchAll(PDO::FETCH_ASSOC);
 
@@ -206,11 +206,11 @@ try {
                 $g2 = $m2 ? $m2['gagnant_id'] : null;
 
                 if ($g1) {
-                    $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND ronde = 2 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND manche = 2 AND position = :pos")
                         ->execute([":p" => $g1, ":id" => $id_tournoi, ":pos" => $pos_r2]);
                 }
                 if ($g2) {
-                    $pdo->prepare("UPDATE match_tournoi SET id_participant2 = :p WHERE id_tournoi = :id AND ronde = 2 AND position = :pos")
+                    $pdo->prepare("UPDATE match_tournoi SET id_participant2 = :p WHERE id_tournoi = :id AND manche = 2 AND position = :pos")
                         ->execute([":p" => $g2, ":id" => $id_tournoi, ":pos" => $pos_r2]);
                 }
             }
@@ -218,15 +218,15 @@ try {
     }
 
     // Compute DE bracket parameters from WBR1 match count (stable after generation)
-    $nb_rondes_wb = 0;
-    $nb_rondes_lb = 0;
+    $nb_manches_wb = 0;
+    $nb_manches_lb = 0;
     if (($tournoi['format'] ?? '') === 'Double Elimination') {
-        $stmtR1C = $pdo->prepare("SELECT COUNT(*) FROM match_tournoi WHERE id_tournoi = :id AND ronde = 1");
+        $stmtR1C = $pdo->prepare("SELECT COUNT(*) FROM match_tournoi WHERE id_tournoi = :id AND manche = 1");
         $stmtR1C->execute([":id" => $id_tournoi]);
         $r1c = (int) $stmtR1C->fetchColumn();
         if ($r1c > 0) {
-            $nb_rondes_wb = (int) log($r1c * 2, 2);
-            $nb_rondes_lb = 2 * max(0, $nb_rondes_wb - 1);
+            $nb_manches_wb = (int) log($r1c * 2, 2);
+            $nb_manches_lb = 2 * max(0, $nb_manches_wb - 1);
         }
     }
 
@@ -268,73 +268,73 @@ try {
 
             // Propager selon le format
             if ($gagnant) {
-                $stmtInfo = $pdo->prepare("SELECT ronde, position FROM match_tournoi WHERE id = :id");
+                $stmtInfo = $pdo->prepare("SELECT manche, position FROM match_tournoi WHERE id = :id");
                 $stmtInfo->execute([":id" => $id_match]);
                 $info = $stmtInfo->fetch(PDO::FETCH_ASSOC);
-                $r_match = $info['ronde'];
+                $r_match = $info['manche'];
                 $p_match = $info['position'];
 
                 if (($tournoi['format'] ?? '') === 'Double Elimination') {
                     $perdant = ($gagnant == $row['id_participant1']) ? $row['id_participant2'] : $row['id_participant1'];
-                    $ronde_gf = $nb_rondes_wb + $nb_rondes_lb + 1;
+                    $manche_gf = $nb_manches_wb + $nb_manches_lb + 1;
 
-                    if ($r_match <= $nb_rondes_wb) {
+                    if ($r_match <= $nb_manches_wb) {
                         // WB match: winner advances in WB (or to GF), loser drops to LB
-                        if ($r_match == $nb_rondes_wb) {
+                        if ($r_match == $nb_manches_wb) {
                             // WB Final winner → GF p1
-                            $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND ronde = :r AND position = 1")
-                                ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $ronde_gf]);
+                            $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND manche = :r AND position = 1")
+                                ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $manche_gf]);
                         } else {
                             $next_r = $r_match + 1;
                             $next_p = (int) ceil($p_match / 2);
                             $slot = ($p_match % 2 === 1) ? 'id_participant1' : 'id_participant2';
-                            $pdo->prepare("UPDATE match_tournoi SET $slot = :p WHERE id_tournoi = :id AND ronde = :r AND position = :pos")
+                            $pdo->prepare("UPDATE match_tournoi SET $slot = :p WHERE id_tournoi = :id AND manche = :r AND position = :pos")
                                 ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $next_r, ":pos" => $next_p]);
                         }
                         // Loser drops to LB
                         if ($perdant) {
                             if ($r_match == 1) {
-                                $lb_r = $nb_rondes_wb + 1;
+                                $lb_r = $nb_manches_wb + 1;
                                 $lb_p = (int) ceil($p_match / 2);
                                 $lb_slot = ($p_match % 2 === 1) ? 'id_participant1' : 'id_participant2';
                             } else {
-                                $lb_r = $nb_rondes_wb + 2 * ($r_match - 1);
+                                $lb_r = $nb_manches_wb + 2 * ($r_match - 1);
                                 $lb_p = $p_match;
                                 $lb_slot = 'id_participant2';
                             }
-                            $pdo->prepare("UPDATE match_tournoi SET $lb_slot = :p WHERE id_tournoi = :id AND ronde = :r AND position = :pos")
+                            $pdo->prepare("UPDATE match_tournoi SET $lb_slot = :p WHERE id_tournoi = :id AND manche = :r AND position = :pos")
                                 ->execute([":p" => $perdant, ":id" => $id_tournoi, ":r" => $lb_r, ":pos" => $lb_p]);
                         }
-                    } elseif ($r_match < $ronde_gf) {
+                    } elseif ($r_match < $manche_gf) {
                         // LB match: winner advances in LB (or to GF), loser eliminated
-                        $lr = $r_match - $nb_rondes_wb;
-                        if ($lr == $nb_rondes_lb) {
+                        $lr = $r_match - $nb_manches_wb;
+                        if ($lr == $nb_manches_lb) {
                             // Last LB round winner → GF p2
-                            $pdo->prepare("UPDATE match_tournoi SET id_participant2 = :p WHERE id_tournoi = :id AND ronde = :r AND position = 1")
-                                ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $ronde_gf]);
+                            $pdo->prepare("UPDATE match_tournoi SET id_participant2 = :p WHERE id_tournoi = :id AND manche = :r AND position = 1")
+                                ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $manche_gf]);
                         } elseif ($lr % 2 === 1) {
                             // Odd LB round (consolidation) → next LB round, same pos, p1
-                            $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND ronde = :r AND position = :pos")
+                            $pdo->prepare("UPDATE match_tournoi SET id_participant1 = :p WHERE id_tournoi = :id AND manche = :r AND position = :pos")
                                 ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $r_match + 1, ":pos" => $p_match]);
                         } else {
                             // Even LB round (feed) → next LB round, halved pos
                             $next_p = (int) ceil($p_match / 2);
                             $lb_slot = ($p_match % 2 === 1) ? 'id_participant1' : 'id_participant2';
-                            $pdo->prepare("UPDATE match_tournoi SET $lb_slot = :p WHERE id_tournoi = :id AND ronde = :r AND position = :pos")
+                            $pdo->prepare("UPDATE match_tournoi SET $lb_slot = :p WHERE id_tournoi = :id AND manche = :r AND position = :pos")
                                 ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $r_match + 1, ":pos" => $next_p]);
                         }
                     }
                     // GF: no further propagation needed
                 } else {
                     // Single Elimination
-                    $ronde_suivante = $r_match + 1;
+                    $manche_suivante = $r_match + 1;
                     $pos_suivante = (int) ceil($p_match / 2);
-                    $stmtNext = $pdo->prepare("SELECT id FROM match_tournoi WHERE id_tournoi = :id AND ronde = :r AND position = :pos");
-                    $stmtNext->execute([":id" => $id_tournoi, ":r" => $ronde_suivante, ":pos" => $pos_suivante]);
+                    $stmtNext = $pdo->prepare("SELECT id FROM match_tournoi WHERE id_tournoi = :id AND manche = :r AND position = :pos");
+                    $stmtNext->execute([":id" => $id_tournoi, ":r" => $manche_suivante, ":pos" => $pos_suivante]);
                     if ($stmtNext->fetch()) {
                         $slot = ($p_match % 2 === 1) ? 'id_participant1' : 'id_participant2';
-                        $pdo->prepare("UPDATE match_tournoi SET $slot = :p WHERE id_tournoi = :id AND ronde = :r AND position = :pos")
-                            ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $ronde_suivante, ":pos" => $pos_suivante]);
+                        $pdo->prepare("UPDATE match_tournoi SET $slot = :p WHERE id_tournoi = :id AND manche = :r AND position = :pos")
+                            ->execute([":p" => $gagnant, ":id" => $id_tournoi, ":r" => $manche_suivante, ":pos" => $pos_suivante]);
                     }
                 }
             }
@@ -346,8 +346,8 @@ try {
         if ($_POST['ajax_action'] === 'rouvrir_match') {
             $id_match = (int) $_POST['id_match'];
 
-            // Lire l'ancien gagnant et la ronde avant de reinitialiser
-            $stmtOld = $pdo->prepare("SELECT gagnant_id, ronde FROM match_tournoi WHERE id = :id");
+            // Lire l'ancien gagnant et la manche avant de reinitialiser
+            $stmtOld = $pdo->prepare("SELECT gagnant_id, manche FROM match_tournoi WHERE id = :id");
             $stmtOld->execute([":id" => $id_match]);
             $old = $stmtOld->fetch(PDO::FETCH_ASSOC);
             $ancien_gagnant = $old['gagnant_id'];
@@ -356,7 +356,7 @@ try {
             $pdo->prepare("UPDATE match_tournoi SET score1 = 0, score2 = 0, gagnant_id = NULL, statut_match = 'en_attente' WHERE id = :id")
                 ->execute([":id" => $id_match]);
 
-            // Cascade : supprimer l'ancien gagnant de toutes les rondes suivantes
+            // Cascade : supprimer l'ancien gagnant de toutes les manches suivantes
             if ($ancien_gagnant) {
                 $pdo->prepare(
                     "UPDATE match_tournoi
@@ -367,8 +367,8 @@ try {
                          score2          = CASE WHEN id_participant2 = :p THEN 0    ELSE score2 END,
                          statut_match    = CASE WHEN (id_participant1 = :p OR id_participant2 = :p)
                                                THEN 'en_attente' ELSE statut_match END
-                     WHERE id_tournoi = :tid AND ronde > :ronde"
-                )->execute([":p" => $ancien_gagnant, ":tid" => $id_tournoi, ":ronde" => $old['ronde']]);
+                     WHERE id_tournoi = :tid AND manche > :manche"
+                )->execute([":p" => $ancien_gagnant, ":tid" => $id_tournoi, ":manche" => $old['manche']]);
             }
 
             echo json_encode(["ok" => true]);
@@ -377,7 +377,7 @@ try {
     }
 
     // Recuperer tous les matchs
-    $stmtMatchs = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id ORDER BY ronde ASC, position ASC");
+    $stmtMatchs = $pdo->prepare("SELECT * FROM match_tournoi WHERE id_tournoi = :id ORDER BY manche ASC, position ASC");
     $stmtMatchs->execute([":id" => $id_tournoi]);
     $matchs = $stmtMatchs->fetchAll(PDO::FETCH_ASSOC);
 
@@ -389,36 +389,36 @@ try {
         $map_participants[$p['id']] = $p['nom_affichage'] ?: $p['nom_participant'];
     }
 
-    // Organiser par ronde
-    $rondes = [];
+    // Organiser par manche
+    $manches = [];
     foreach ($matchs as $m) {
-        $rondes[$m['ronde']][] = $m;
+        $manches[$m['manche']][] = $m;
     }
-    $nb_rondes = count($rondes);
+    $nb_manches = count($manches);
 
 } catch (PDOException $e) {
-    die("Erreur: " . $e->getMessage());
+    error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard.");
 }
 
-// Labels des rondes
-function labelRonde($ronde, $total) {
-    global $tournoi, $nb_rondes_wb, $nb_rondes_lb;
+// Labels des manches
+function labelManche($manche, $total) {
+    global $tournoi, $nb_manches_wb, $nb_manches_lb;
     $format = $tournoi['format'] ?? 'Single Elimination';
     if ($format === 'Double Elimination') {
-        $ronde_gf = $nb_rondes_wb + $nb_rondes_lb + 1;
-        if ($ronde >= $ronde_gf) return "Grande Finale";
-        if ($ronde > $nb_rondes_wb) {
-            $lr = $ronde - $nb_rondes_wb;
+        $manche_gf = $nb_manches_wb + $nb_manches_lb + 1;
+        if ($manche >= $manche_gf) return "Grande Finale";
+        if ($manche > $nb_manches_wb) {
+            $lr = $manche - $nb_manches_wb;
             return "Perdants R" . $lr;
         }
-        if ($ronde == $nb_rondes_wb) return "Finale Gagnants";
-        if ($ronde == $nb_rondes_wb - 1 && $nb_rondes_wb >= 2) return "Demi-finales Gagnants";
-        return "Gagnants R" . $ronde;
+        if ($manche == $nb_manches_wb) return "Finale Gagnants";
+        if ($manche == $nb_manches_wb - 1 && $nb_manches_wb >= 2) return "Demi-finales Gagnants";
+        return "Gagnants R" . $manche;
     }
-    if ($ronde === $total) return "Finale";
-    if ($ronde === $total - 1) return "Demi-finales";
-    if ($ronde === $total - 2) return "Quarts de finale";
-    return "Ronde " . $ronde;
+    if ($manche === $total) return "Finale";
+    if ($manche === $total - 1) return "Demi-finales";
+    if ($manche === $total - 2) return "Quarts de finale";
+    return "Manche " . $manche;
 }
 ?>
 
@@ -511,22 +511,22 @@ function labelRonde($ronde, $total) {
             <?php
             $format_tournoi_display = $tournoi['format'] ?? 'Single Elimination';
             $is_de = ($format_tournoi_display === 'Double Elimination');
-            $ronde_gf_display = $nb_rondes_wb + $nb_rondes_lb + 1;
+            $manche_gf_display = $nb_manches_wb + $nb_manches_lb + 1;
 
             // Build section groups for DE
             $sections = [];
             if ($is_de) {
                 $wb_rounds = []; $lb_rounds = []; $gf_rounds = [];
-                foreach ($rondes as $nr => $mr) {
-                    if ($nr <= $nb_rondes_wb)                              $wb_rounds[$nr] = $mr;
-                    elseif ($nr <= $nb_rondes_wb + $nb_rondes_lb)          $lb_rounds[$nr] = $mr;
+                foreach ($manches as $nr => $mr) {
+                    if ($nr <= $nb_manches_wb)                              $wb_rounds[$nr] = $mr;
+                    elseif ($nr <= $nb_manches_wb + $nb_manches_lb)          $lb_rounds[$nr] = $mr;
                     else                                                    $gf_rounds[$nr] = $mr;
                 }
                 if (!empty($wb_rounds)) $sections[] = ['label' => 'Winners Bracket', 'accent' => 'indigo', 'rounds' => $wb_rounds];
                 if (!empty($lb_rounds)) $sections[] = ['label' => 'Losers Bracket',  'accent' => 'amber',  'rounds' => $lb_rounds];
                 if (!empty($gf_rounds)) $sections[] = ['label' => 'Grande Finale',   'accent' => 'emerald','rounds' => $gf_rounds];
             } else {
-                $sections[] = ['label' => null, 'accent' => 'indigo', 'rounds' => $rondes];
+                $sections[] = ['label' => null, 'accent' => 'indigo', 'rounds' => $manches];
             }
             ?>
             <?php
@@ -539,7 +539,7 @@ function labelRonde($ronde, $total) {
             }
 
             // Closure : rendu d'une section (titre + colonnes de rounds en pyramide)
-            $renderSection = function ($section) use ($map_participants, $is_de, $nb_rondes_wb, $nb_rondes_lb, $ronde_gf_display, $nb_rondes, $est_en_cours) {
+            $renderSection = function ($section) use ($map_participants, $is_de, $nb_manches_wb, $nb_manches_lb, $manche_gf_display, $nb_manches, $est_en_cours) {
                 // Hauteur commune des colonnes = nb max de matchs * unite -> espacement qui double a chaque round
                 $section_max = max(array_map('count', $section['rounds']));
                 $unit        = 104;
@@ -556,13 +556,13 @@ function labelRonde($ronde, $total) {
                     </div>
                     <?php endif; ?>
                     <div class="flex gap-20 min-w-fit">
-                        <?php foreach ($section['rounds'] as $num_ronde => $matchs_ronde): ?>
+                        <?php foreach ($section['rounds'] as $num_manche => $matchs_manche): ?>
                         <div class="flex flex-col">
                             <div class="text-center text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">
-                                <?= labelRonde($num_ronde, $nb_rondes) ?>
+                                <?= labelManche($num_manche, $nb_manches) ?>
                             </div>
                             <div class="flex flex-col justify-around" style="min-height: <?= $col_height ?>px;">
-                                <?php foreach ($matchs_ronde as $match):
+                                <?php foreach ($matchs_manche as $match):
                                     $nom1 = isset($match['id_participant1']) ? ($map_participants[$match['id_participant1']] ?? '') : '';
                                     $nom2 = isset($match['id_participant2']) ? ($map_participants[$match['id_participant2']] ?? '') : '';
                                     $est_termine = $match['statut_match'] === 'termine';
@@ -573,20 +573,20 @@ function labelRonde($ronde, $total) {
                                     // ----- Match cible (flux du gagnant) pour tracer le connecteur -----
                                     $tr = null; $tp = null;
                                     if (!$is_de) {
-                                        $tr = $num_ronde + 1; $tp = (int) ceil($match['position'] / 2);
-                                    } elseif ($num_ronde < $nb_rondes_wb) {
-                                        $tr = $num_ronde + 1; $tp = (int) ceil($match['position'] / 2);
-                                    } elseif ($num_ronde == $nb_rondes_wb) {
-                                        $tr = $ronde_gf_display; $tp = 1;
-                                    } elseif ($num_ronde < $ronde_gf_display) {
-                                        $lr = $num_ronde - $nb_rondes_wb;
-                                        if ($lr == $nb_rondes_lb)      { $tr = $ronde_gf_display; $tp = 1; }
-                                        elseif ($lr % 2 === 1)         { $tr = $num_ronde + 1; $tp = $match['position']; }
-                                        else                           { $tr = $num_ronde + 1; $tp = (int) ceil($match['position'] / 2); }
+                                        $tr = $num_manche + 1; $tp = (int) ceil($match['position'] / 2);
+                                    } elseif ($num_manche < $nb_manches_wb) {
+                                        $tr = $num_manche + 1; $tp = (int) ceil($match['position'] / 2);
+                                    } elseif ($num_manche == $nb_manches_wb) {
+                                        $tr = $manche_gf_display; $tp = 1;
+                                    } elseif ($num_manche < $manche_gf_display) {
+                                        $lr = $num_manche - $nb_manches_wb;
+                                        if ($lr == $nb_manches_lb)      { $tr = $manche_gf_display; $tp = 1; }
+                                        elseif ($lr % 2 === 1)         { $tr = $num_manche + 1; $tp = $match['position']; }
+                                        else                           { $tr = $num_manche + 1; $tp = (int) ceil($match['position'] / 2); }
                                     }
                                     // Overlay SVG global -> on relie partout (y compris WB/LB -> Grande Finale)
                                     $data_to = ($tr !== null) ? "m-$tr-$tp" : '';
-                                    $node_id = "m-{$num_ronde}-{$match['position']}";
+                                    $node_id = "m-{$num_manche}-{$match['position']}";
                                 ?>
                                 <div class="match-card relative border border-slate-700 rounded-lg overflow-hidden w-60 bg-slate-900/40 <?= ($est_gagnant1 || $est_gagnant2) ? 'border-l-[3px] border-l-emerald-500' : '' ?>"
                                      data-match-id="<?= $match['id'] ?>"

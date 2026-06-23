@@ -19,7 +19,13 @@ if (isset($_POST['id_utilisateur'], $_POST['email'], $_POST['pays'], $_POST['dat
 
         $success = "Compte créé avec succès ! Vous pouvez maintenant vous connecter.";
     } catch (PDOException $e) {
-        $erreur = $e->getMessage();
+        // Ne pas exposer les details techniques (schema, contraintes) a l'utilisateur
+        error_log('Signup error: ' . $e->getMessage());
+        if ($e->getCode() === '23000') {
+            $erreur = "Ce nom d'utilisateur ou cet email est déjà utilisé.";
+        } else {
+            $erreur = "Une erreur est survenue lors de la création du compte.";
+        }
     }
 }
 ?>

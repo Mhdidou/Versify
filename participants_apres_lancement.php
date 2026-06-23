@@ -67,7 +67,7 @@ try {
     $stmtForfaits->execute([":id" => $id_tournoi]);
     $participants_forfaits = $stmtForfaits->fetchAll(PDO::FETCH_ASSOC);
 
-} catch (PDOException $e) { die("Erreur: " . $e->getMessage()); }
+} catch (PDOException $e) { error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard."); }
 
 $nb_actifs = count($participants_actifs);
 $nb_forfaits = count($participants_forfaits);

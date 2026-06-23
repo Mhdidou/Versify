@@ -28,7 +28,8 @@ try {
     $pdostat->execute([":hote" => $hote_connecte]);
     $tournois = $pdostat->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $erreur) {
-    $error_msg = $erreur->getMessage();
+    error_log("DB error: " . $erreur->getMessage());
+    $error_msg = "Une erreur est survenue lors du chargement du dashboard.";
 }
 
 // Stats

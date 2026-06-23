@@ -120,7 +120,9 @@ try {
     // Jeux distincts pour le filtre
     // Jeux distincts pour le filtre
     try {
-        $jeux_disponibles = $pdo->query("SELECT DISTINCT jeu FROM tournoi WHERE hote != '$utilisateur' ORDER BY jeu")->fetchAll(PDO::FETCH_COLUMN);
+        $stmtJeux = $pdo->prepare("SELECT DISTINCT jeu FROM tournoi WHERE hote != :u ORDER BY jeu");
+        $stmtJeux->execute([":u" => $utilisateur]);
+        $jeux_disponibles = $stmtJeux->fetchAll(PDO::FETCH_COLUMN);
     } catch (Exception $e) {
         $jeux_disponibles = [];
     }
@@ -141,7 +143,7 @@ try {
     } catch (Exception $e) { /* table pas encore creee */ }
 
 } catch (PDOException $e) {
-    die("Erreur: " . $e->getMessage());
+    error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard.");
 }
 ?>
 <!DOCTYPE html>

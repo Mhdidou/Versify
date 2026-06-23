@@ -58,7 +58,7 @@ try {
     $nb_checked = 0;
     foreach ($participants as $p) { if ($p['checked_in']) $nb_checked++; }
 
-} catch (PDOException $e) { die("Erreur: " . $e->getMessage()); }
+} catch (PDOException $e) { error_log("DB error: " . $e->getMessage()); die("Une erreur est survenue. Veuillez reessayer plus tard."); }
 ?>
 <!DOCTYPE html>
 <html lang="fr">

@@ -49,7 +49,8 @@ try {
         header("Location: dashboard.php"); die();
     }
 } catch (PDOException $e) {
-    die($e->getMessage());
+    error_log("DB error: " . $e->getMessage());
+    die("Une erreur est survenue. Veuillez reessayer plus tard.");
 }
 
 // Status
