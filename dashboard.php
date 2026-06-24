@@ -247,7 +247,6 @@ foreach ($tournois as $t) {
                         <option value="">Tous les formats</option>
                         <option value="Single Elimination">Single Elimination</option>
                         <option value="Double Elimination">Double Elimination</option>
-                        <option value="Round Robin">Round Robin</option>
                     </select>
                     <select id="status-filter" class="bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded px-4 py-2.5 text-sm outline-none transition">
                         <option value="">Tous les statuts</option>
