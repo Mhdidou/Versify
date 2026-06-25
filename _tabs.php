@@ -1,11 +1,4 @@
 <?php
-// ===================================================================
-// Sous-navigation partagee du hub de tournoi (Overview / Bracket / ...)
-// Attendu avant l'include :
-//   $id_tournoi : int|string  - identifiant du tournoi
-//   $tab_actif  : string      - 'overview'|'bracket'|'participants'|'standings'|'rules'
-// ===================================================================
-
 $tab_actif = $tab_actif ?? '';
 $tid = (int) $id_tournoi;
 

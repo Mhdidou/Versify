@@ -160,13 +160,9 @@ $equipes_brutes = $_POST['equipes'] ?? '';
             let prochainePuissanceDeDeux = Math.pow(2, Math.ceil(Math.log2(Math.max(2, nbEquipes))));
             let nbByes = prochainePuissanceDeDeux - nbEquipes;
 
-            // ===== PROPER SEEDING =====
-            // Generate standard seeding order for the bracket size.
-            // This distributes byes to the TOP seeds so they get first-round advances,
-            // just like Challonge and real tournament organizers do.
+            
             function genererOrdreSeeding(n) {
-                // Generates seeding positions [1, 2, ...n] distributed across the bracket
-                // so that seed 1 vs seed n, seed 2 vs seed n-1, etc. are maximally separated.
+               
                 if (n === 1) return [0];
                 if (n === 2) return [0, 1];
 
@@ -185,7 +181,6 @@ $equipes_brutes = $_POST['equipes'] ?? '';
 
             let ordreSeeding = genererOrdreSeeding(prochainePuissanceDeDeux);
 
-            // Build the seeded array: place real teams by seed order, byes go to bottom seeds
             let tableauSeed = new Array(prochainePuissanceDeDeux).fill("");
             for (let i = 0; i < prochainePuissanceDeDeux; i++) {
                 let seedPosition = ordreSeeding[i]; // which slot in the bracket
@@ -196,20 +191,18 @@ $equipes_brutes = $_POST['equipes'] ?? '';
                 }
             }
 
-            // Format into pairs for jquery.bracket
             let equipesFormatees = [];
             for (let i = 0; i < tableauSeed.length; i += 2) {
                 equipesFormatees.push([tableauSeed[i], tableauSeed[i + 1]]);
             }
 
-            // ===== RESULTS: auto-advance byes =====
-            // For matches where one team is blank (bye), auto-advance the real team
+           
             let resultatsRound1 = equipesFormatees.map(function(match) {
                 let a = match[0], b = match[1];
-                if (a === "" && b === "") return [null, null]; // both empty, no result
-                if (a !== "" && b === "") return [1, 0];       // team A advances
-                if (a === "" && b !== "") return [0, 1];       // team B advances
-                return [null, null]; // both present = match to be played, no result yet
+                if (a === "" && b === "") return [null, null]; 
+                if (a !== "" && b === "") return [1, 0];       
+                if (a === "" && b !== "") return [0, 1];     
+                return [null, null]; 
             });
 
             let resultatsArbre = [];
@@ -230,7 +223,6 @@ $equipes_brutes = $_POST['equipes'] ?? '';
                 results: resultatsArbre
             };
 
-            // Custom decorator to render blank for empty/bye names
             function customRender(container, data, score, state) {
                 var name = data || "";
                 if (!name || name === "BYE" || name === "TBD" || name === "null") {
@@ -240,7 +232,6 @@ $equipes_brutes = $_POST['equipes'] ?? '';
                 }
             }
 
-            // Generate bracket
             $('#bracket-container').bracket({
                 init: donneesArbre,
                 skipConsolationRound: !veutTroisiemePlace,
@@ -256,7 +247,6 @@ $equipes_brutes = $_POST['equipes'] ?? '';
                 }
             });
 
-            // Post-render cleanup: hide any remaining BYE/TBD text
             setTimeout(function() {
                 $('.jQBracket .team .label, .jQBracket .team span').each(function() {
                     var txt = $(this).text().trim();
@@ -266,7 +256,6 @@ $equipes_brutes = $_POST['equipes'] ?? '';
                 });
             }, 100);
 
-            // ===== ZOOM CONTROLS =====
             let currentZoom = 1;
             const bracketEl = document.getElementById('bracket-container');
             const zoomLabel = document.getElementById('zoom-level');
@@ -287,7 +276,6 @@ $equipes_brutes = $_POST['equipes'] ?? '';
                 setZoom(fitZoom);
             });
 
-            // ===== FULLSCREEN =====
             document.getElementById('fullscreen-btn').addEventListener('click', () => {
                 const wrapper = document.getElementById('bracket-wrapper');
                 if (!document.fullscreenElement) {

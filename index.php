@@ -1,6 +1,5 @@
 ﻿<?php
 session_start();
-// Index page — fetches a few featured tournaments from DB to showcase activity
 $tournois_featured = [];
 $stats = ['tournois' => 0, 'joueurs' => 0, 'actifs' => 0];
 $est_connecte = isset($_SESSION['id_utilisateur']);
@@ -10,16 +9,15 @@ try {
     require_once __DIR__ . '/config.php';
     require_once __DIR__ . '/_helpers.php';
 
-    // Featured tournaments (latest 6)
     $stmt = $pdo->query("SELECT id, hote, nom, jeu, format, date_depart, max_participants FROM tournoi ORDER BY date_depart DESC LIMIT 6");
     $tournois_featured = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Stats
     $stats['tournois'] = (int) $pdo->query("SELECT COUNT(*) FROM tournoi")->fetchColumn();
     $stats['joueurs']  = (int) $pdo->query("SELECT COUNT(*) FROM utilisateur")->fetchColumn();
     $stats['actifs']   = (int) $pdo->query("SELECT COUNT(*) FROM tournoi WHERE date_depart >= CURDATE()")->fetchColumn();
 } catch (PDOException $e) {
-    // Silent — DB may be offline while developing, landing page still renders
+    echo "ERREUR : " . $e->getMessage();
+    exit;
 }
 
 ?>
@@ -49,7 +47,6 @@ try {
 </head>
 <body class="bg-slate-950 text-slate-100 antialiased min-h-screen flex flex-col">
 
-<!-- NAV -->
 <nav class="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/80 backdrop-blur-xl">
     <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
         <a href="index.php" class="flex items-center gap-3">
@@ -60,7 +57,6 @@ try {
             <a href="#formats" class="hover:text-white transition">Formats</a>
             <a href="#tournois" class="hover:text-white transition">Tournois</a>
             <a href="#how-it-works" class="hover:text-white transition">Comment ça marche</a>
-            <a href="jeux_catalogue.php" class="hover:text-white transition">Jeux</a>
         </div>
         <div class="flex items-center gap-3">
             <?php if ($est_connecte): ?>
@@ -70,14 +66,13 @@ try {
                     <?= strtoupper(substr($utilisateur_connecte, 0, 1)) ?>
                 </a>
             <?php else: ?>
-                <a href="signup.php" class="text-sm font-medium text-slate-400 hover:text-white transition hidden sm:inline">Sign Up</a>
-                <a href="login.php" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded text-sm font-bold transition shadow-lg shadow-indigo-500/20">Log In</a>
+                <a href="signup.php" class="text-sm font-medium text-slate-400 hover:text-white transition hidden sm:inline">S'inscrire</a>
+                <a href="login.php" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded text-sm font-bold transition shadow-lg shadow-indigo-500/20">Se connecter</a>
             <?php endif; ?>
         </div>
     </div>
 </nav>
 
-<!-- HERO -->
 <header class="relative overflow-hidden">
     <div class="absolute inset-0 grid-bg pointer-events-none"></div>
     <div class="absolute -top-20 -left-20 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>
@@ -122,7 +117,6 @@ try {
     </div>
 </header>
 
-<!-- FEATURED TOURNAMENTS -->
 <?php if (!empty($tournois_featured)): ?>
 <section id="tournois" class="max-w-7xl mx-auto w-full px-6 py-16">
     <div class="flex items-end justify-between border-b border-slate-800 pb-4 mb-8">
@@ -204,7 +198,6 @@ try {
     </div>
 </section>
 
-<!-- FORMATS -->
 <section id="formats" class="max-w-7xl mx-auto w-full px-6 py-16">
     <div class="text-center mb-10">
         <h2 class="text-2xl md:text-3xl font-bold tracking-tight italic">Formats de tournoi</h2>
@@ -277,7 +270,6 @@ try {
     </div>
 </section>
 
-<!-- CTA BAND -->
 <section class="max-w-7xl mx-auto w-full px-6 py-16">
     <div class="glass-card border border-slate-800 rounded-2xl p-10 md:p-14 relative overflow-hidden">
         <div class="absolute top-0 right-0 w-[400px] h-[400px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none"></div>

@@ -84,13 +84,48 @@ try {
     $stmtP->execute([":u" => $user_cible]);
     $nb_tournois_participes = (int) $stmtP->fetchColumn();
 
-    // Stats joueur
+    // Stats joueur — calculees a la volee depuis les matchs termines
+    // (la source de verite est match_tournoi : pas de table denormalisee a synchroniser)
     $stats = ['matchs_joues' => 0, 'victoires' => 0, 'defaites' => 0, 'podiums' => 0, 'score_total_marque' => 0, 'score_total_encaisse' => 0, 'tournois_joues' => 0];
+
+    // On ne compte que les vrais matchs joues : termines, avec les deux adversaires presents (on exclut les byes).
+    $stmtStats = $pdo->prepare(
+        "SELECT
+            COUNT(*) AS matchs_joues,
+            SUM(CASE WHEN m.gagnant_id = p.id THEN 1 ELSE 0 END) AS victoires,
+            SUM(CASE WHEN m.id_participant1 = p.id THEN m.score1 ELSE m.score2 END) AS score_total_marque,
+            SUM(CASE WHEN m.id_participant1 = p.id THEN m.score2 ELSE m.score1 END) AS score_total_encaisse,
+            COUNT(DISTINCT m.id_tournoi) AS tournois_joues
+         FROM participant p
+         JOIN match_tournoi m
+           ON m.id_tournoi = p.id_tournoi
+          AND (m.id_participant1 = p.id OR m.id_participant2 = p.id)
+         WHERE p.nom_participant = :u
+           AND m.statut_match = 'termine'
+           AND m.id_participant1 IS NOT NULL
+           AND m.id_participant2 IS NOT NULL"
+    );
+    $stmtStats->execute([":u" => $user_cible]);
+    $row = $stmtStats->fetch(PDO::FETCH_ASSOC);
+    if ($row) {
+        $stats['matchs_joues']         = (int) $row['matchs_joues'];
+        $stats['victoires']            = (int) $row['victoires'];
+        $stats['defaites']             = $stats['matchs_joues'] - $stats['victoires'];
+        $stats['score_total_marque']   = (int) $row['score_total_marque'];
+        $stats['score_total_encaisse'] = (int) $row['score_total_encaisse'];
+        $stats['tournois_joues']       = (int) $row['tournois_joues'];
+    }
+
+    // Podiums = top 3 dans les classements finalises (depend de classement_tournoi, qui peut ne pas exister)
     try {
-        $stmtStats = $pdo->prepare("SELECT * FROM statistique_joueur WHERE id_utilisateur = :u");
-        $stmtStats->execute([":u" => $user_cible]);
-        $row = $stmtStats->fetch(PDO::FETCH_ASSOC);
-        if ($row) $stats = $row;
+        $stmtPod = $pdo->prepare(
+            "SELECT COUNT(DISTINCT c.id_tournoi)
+             FROM classement_tournoi c
+             JOIN participant p ON p.id = c.id_participant
+             WHERE p.nom_participant = :u AND c.position_finale <= 3"
+        );
+        $stmtPod->execute([":u" => $user_cible]);
+        $stats['podiums'] = (int) $stmtPod->fetchColumn();
     } catch (Exception $e) {}
 
     $winrate = $stats['matchs_joues'] > 0 ? round(($stats['victoires'] / $stats['matchs_joues']) * 100) : 0;

@@ -1,11 +1,5 @@
 <?php
-// ===================================================================
-// Fichier utilitaire - fonctions partagees entre les pages
-// ===================================================================
 
-/**
- * Retourner le label et les classes CSS du statut d'un tournoi
- */
 function statut_tournoi(string $date_depart, string $statut_db = ''): array {
     if ($statut_db === 'termine') {
         return ['label' => 'Terminé', 'class' => 'bg-slate-700/60 text-slate-300 border-slate-600', 'dot' => 'bg-slate-400'];
@@ -20,14 +14,9 @@ function statut_tournoi(string $date_depart, string $statut_db = ''): array {
     return ['label' => 'À venir', 'class' => 'bg-amber-500/15 text-amber-400 border-amber-500/40', 'dot' => 'bg-amber-400'];
 }
 
-/**
- * Calculer et enregistrer le classement final d'un tournoi Single Elimination
- */
-function calculerClassement(PDO $pdo, int $id_tournoi): void {
-    // Supprimer l'ancien classement
-    $pdo->prepare("DELETE FROM classement_tournoi WHERE id_tournoi = :id")->execute([":id" => $id_tournoi]);
 
-    // Recuperer le nombre total de manches
+function calculerClassement(PDO $pdo, int $id_tournoi): void {
+    $pdo->prepare("DELETE FROM classement_tournoi WHERE id_tournoi = :id")->execute([":id" => $id_tournoi]);
     $stmtR = $pdo->prepare("SELECT MAX(manche) FROM match_tournoi WHERE id_tournoi = :id");
     $stmtR->execute([":id" => $id_tournoi]);
     $max_manche = (int) $stmtR->fetchColumn();
@@ -36,7 +25,6 @@ function calculerClassement(PDO $pdo, int $id_tournoi): void {
 
     $position = 1;
 
-    // 1er = gagnant de la finale
     $stmtFinale = $pdo->prepare("SELECT gagnant_id FROM match_tournoi WHERE id_tournoi = :id AND manche = :r AND gagnant_id IS NOT NULL");
     $stmtFinale->execute([":id" => $id_tournoi, ":r" => $max_manche]);
     $champion = $stmtFinale->fetchColumn();
@@ -45,8 +33,6 @@ function calculerClassement(PDO $pdo, int $id_tournoi): void {
         $pdo->prepare("INSERT INTO classement_tournoi (id_tournoi, id_participant, position_finale) VALUES (:t, :p, :pos)")
             ->execute([":t" => $id_tournoi, ":p" => $champion, ":pos" => $position++]);
     }
-
-    // 2eme = perdant de la finale
     $stmtFinaleMatch = $pdo->prepare("SELECT id_participant1, id_participant2, gagnant_id FROM match_tournoi WHERE id_tournoi = :id AND manche = :r");
     $stmtFinaleMatch->execute([":id" => $id_tournoi, ":r" => $max_manche]);
     $finale = $stmtFinaleMatch->fetch(PDO::FETCH_ASSOC);
@@ -59,7 +45,6 @@ function calculerClassement(PDO $pdo, int $id_tournoi): void {
         }
     }
 
-    // 3eme-4eme = perdants des demi-finales
     if ($max_manche >= 2) {
         $stmtDemi = $pdo->prepare("SELECT id_participant1, id_participant2, gagnant_id FROM match_tournoi WHERE id_tournoi = :id AND manche = :r AND gagnant_id IS NOT NULL");
         $stmtDemi->execute([":id" => $id_tournoi, ":r" => $max_manche - 1]);
@@ -70,9 +55,8 @@ function calculerClassement(PDO $pdo, int $id_tournoi): void {
                     ->execute([":t" => $id_tournoi, ":p" => $perdant, ":pos" => $position]);
             }
         }
-        $position += 2; // 3eme ex-aequo
+        $position += 2; 
 
-        // Continuer pour les manches precedentes
         for ($r = $max_manche - 2; $r >= 1; $r--) {
             $stmtManche = $pdo->prepare("SELECT id_participant1, id_participant2, gagnant_id FROM match_tournoi WHERE id_tournoi = :id AND manche = :r AND gagnant_id IS NOT NULL");
             $stmtManche->execute([":id" => $id_tournoi, ":r" => $r]);
@@ -89,15 +73,11 @@ function calculerClassement(PDO $pdo, int $id_tournoi): void {
         }
     }
 
-    // Mettre a jour le statut du tournoi
     $pdo->prepare("UPDATE tournoi SET statut_tournoi = 'termine' WHERE id = :id")->execute([":id" => $id_tournoi]);
 
 }
 
-/**
- * Obtenir les infos d'un jeu depuis le catalogue (couleur, categorie)
- * Retourne null si le jeu n'est pas trouve ou si la table n'existe pas
- */
+
 function getJeuInfo(PDO $pdo, string $nom_jeu): ?array {
     try {
         $stmt = $pdo->prepare("SELECT * FROM jeu_catalogue WHERE nom = :nom");

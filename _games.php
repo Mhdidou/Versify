@@ -1,5 +1,4 @@
 <?php
-// Shared games list used by tournoi.php and gerer_tournoi.php
 $liste_jeux = [
     "League of Legends", "Counter-Strike 2", "Dota 2", "Valorant", "Rocket League",
     "Rainbow Six Siege", "Overwatch 2", "Apex Legends", "Fortnite", "PUBG: Battlegrounds",

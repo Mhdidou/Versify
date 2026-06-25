@@ -182,9 +182,7 @@ if (isset($_POST['id_utilisateur'], $_POST['email'], $_POST['pays'], $_POST['dat
                         <button type="submit" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-3 rounded text-sm font-bold transition shadow-lg shadow-indigo-500/20 w-full uppercase tracking-widest">
                             Créer mon compte
                         </button>
-                        <p class="text-center text-xs text-slate-500 mt-4">
-                            En vous inscrivant, vous acceptez les conditions d'utilisation de la plateforme.
-                        </p>
+                       
                     </div>
                 </form>
             </div>

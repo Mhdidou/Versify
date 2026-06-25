@@ -1,4 +1,3 @@
-<!-- Theme Toggle: Dark/Light Mode -->
 <style>
 .light-mode body { background-color: #f8fafc !important; color: #1e293b !important; }
 .light-mode nav { background: rgba(248,250,252,0.9) !important; border-color: #e2e8f0 !important; }
